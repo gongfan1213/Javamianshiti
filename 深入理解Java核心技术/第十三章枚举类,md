@@ -1,0 +1,301 @@
+### 第13章 枚举
+
+#### 13.1 枚举的用法
+在前面的章节中讲过，Java是一种面向对象的语言，这种语言一个很重要的特点就是需要对现实世界进行抽象。
+
+在现实世界中，我们经常会把几个有限的常量放到一起，组成一个组。例如，我们把周一到周日放到一起组成一个星期的七天，把1月到12月放到一起组成一年的12个月份，等等。
+
+在Java开发中，也经常用到这样的一组常量，通常我们会把它们定义到一起，组成一个枚举。
+
+枚举类型是指由一组固定的常量组成合法的类型。Java中由关键字enum来定义一个枚举类型的常量。比如定义一个季节的枚举：
+```java
+public enum Season {
+    SPRING, SUMMER, AUTUMN, WINTER;
+}
+```
+
+有了以上的枚举，在程序中引用春天时，就可以直接使用SPRING这个枚举项了。
+
+在枚举出现之前，我们只能单独定义一个常量类，例如：
+```java
+public class Season {
+    public static final int SPRING = 1;
+    public static final int SUMMER = 2;
+    public static final int AUTUMN = 3;
+    public static final int WINTER = 4;
+}
+```
+
+在Java还没有引入枚举类型之前，表示枚举类型的常用模式是声明一组具有int类型的常量。之前通常利用public final static方法定义常量的代码如下，分别用1表示春天、2表示夏天、3表示秋天、4表示冬天。
+
+这种方式和枚举相比，安全性、易用性和可读性都比较差。
+
+Java的枚举有以下特点：
+（1）使用关键字enum创建枚举。
+（2）一个枚举中包含若干枚举项，如Season包含SPRING、SUMMER、AUTUMN和WINTER。
+（3）在枚举中可以定义一个成员变量和方法。
+（4）枚举可以实现一个或多个接口。
+（5）枚举可以配合switch使用。
+
+在以下例子中，我们运用了上面介绍的前4个特点：
+```java
+/**
+ * 运算接口
+ * @author Hollis
+ */
+public interface Operation {
+    public Double operate(Double x, Double y);
+}
+
+/**
+ * 基本运算枚举
+ * @author Hollis
+ */
+public enum BasicOperation implements Operation {
+    PLUS("+", "加法") {
+        @Override
+        public Double operate(Double x, Double y) {
+            return x + y;
+        }
+    },
+    MINUS("-", "减法") {
+        @Override
+        public Double operate(Double x, Double y) {
+            return x - y;
+        }
+    },
+    MULTIPLY("*", "乘法") {
+        @Override
+        public Double operate(Double x, Double y) {
+            return x * y;
+        }
+    },
+    DIVIDE("/", "除法") {
+        @Override
+        public Double operate(Double x, Double y) {
+            return x / y;
+        }
+    };
+
+    private String symbol;
+    private String name;
+
+    BasicOperation(String symbol, String name) {
+        this.symbol = symbol;
+        this.name = name;
+    }
+}
+```
+
+#### 13.2 枚举是如何实现的
+想要了解枚举的实现原理，最简单的办法就是查看Java中的源代码，但枚举类的类型是什么呢？是enum吗？很明显不是，enum就和class一样，只是一个关键字，它并不是一个类。
+
+枚举是由什么类维护的呢？我们简单地写一个枚举：
+```java
+public enum T {
+    SPRING,SUMMER;
+}
+```
+
+然后使用反编译，看一下这段代码到底是怎么实现的。反编译后的代码如下：
+```java
+public final class T extends Enum {
+    private T(String s, int i) {
+        super(s, i);
+    }
+    public static T[] values() {
+        T at[];
+        int i;
+        T at1[];
+        System.arraycopy(at = ENUM$VALUES, 0, at1 = new T[i = at.length], 0, i);
+        return at1;
+    }
+    public static T valueOf(String s) {
+        return (T)Enum.valueOf(demo/T, s);
+    }
+    public static final T SPRING;
+    public static final T SUMMER;
+    private static final T ENUM$VALUES[];
+    static {
+        SPRING = new T("SPRING", 0);
+        SUMMER = new T("SUMMER", 1);
+        ENUM$VALUES = (new T[] {
+            SPRING, SUMMER
+        });
+    }
+}
+```
+
+通过反编译后的代码我们可以看到public final class T extends Enum，说明该类继承了java.lang.Enum类。
+
+java.lang.Enum类是一个抽象类，定义如下：
+```java
+package java.lang;
+public abstract class Enum<E extends Enum<E>> implements Constable, Comparable<E>, Serializable {
+    private final String name;
+    private final int ordinal;
+}
+```
+
+可以看到，Enum中定义了两个成员变量，分别是name和ordinal。因为有name的存在，所以我们必须给枚举的枚举项定义一个名字；因为有ordinal的存在，所以枚举中的每个枚举项默认有一个整数类型的序号。
+
+当我们使用enum定义枚举类型时，编译器会自动帮我们创建一个类继承自Enum类。因为定义出来的类是final类型的，所以枚举类型不能被继承。
+
+#### 13.3 如何比较Java中的枚举
+在了解枚举的用法和实现原理之后，我们讨论一下如何在Java中对枚举进行比较。
+
+比较分两种，一种是等值比较，另一种是大小比较。
+
+一般在Java中对对象的等值比较有两种方式，一种是使用“==”，另一种是使用equals方法。枚举同样支持这两种比较方式：
+```java
+if (BasicOperation.PLUS == BasicOperation.PLUS) {
+}
+if (BasicOperation.PLUS.equals(BasicOperation.PLUS)) {
+}
+```
+
+而且，在Java中，这两种比较方式没有任何区别，效果一样。我们通过查看Enum类中的equals方法可以发现，其实equals方法也是通过“==”判断的。
+```java
+/**
+ * Returns true if the specified object is equal to this
+ * enum constant.
+ *
+ * @param other the object to be compared for equality with this object.
+ * @return true if the specified object is equal to this
+ * enum constant.
+ */
+public final boolean equals(Object other) {
+    return this==other;
+}
+```
+
+分析了枚举的等值比较，我们再来看一下枚举的大小比较是如何实现的？
+
+在Enum类中存在一个compareTo方法，这个方法的实现如下：
+```java
+/**
+ * Compares this enum with the specified object for order. Returns a
+ * negative integer, zero, or a positive integer as this object is less
+ * than, equal to, or greater than the specified object.
+ *
+ * Enum constants are only comparable to other enum constants of the
+ * same enum type. The natural order implemented by this
+ * method is the order in which the constants are declared.
+ */
+public final int compareTo(E o) {
+    Enum<?> other = (Enum<?>)o;
+    Enum<E> self = this;
+    if (self.getClass() != other.getClass() && // optimization
+        self.getDeclaringClass() != other.getDeclaringClass())
+        throw new ClassCastException();
+    return self.ordinal - other.ordinal;
+}
+```
+
+可以看到，枚举的compareTo方法比较的其实是Enum的ordinal的顺序大小。所以，先定义的枚举项要“小于”后定义的枚举项。
+
+Enum类中还有一些其他方法，比如name、hashCode等，很多枚举的特性都源自这些方法的定义，感兴趣的读者可以查看这些方法的实现。
+
+#### 13.4 switch对枚举的支持
+在13.1节中，我们提到枚举是支持使用switch的。那么，switch对枚举的支持是如何实现的呢？
+
+在之前的章节中，我们介绍了Java 7之后的版本中，switch对String类型的支持其实是通过语法糖实现的。
+
+我们知道，switch中其实只能使用整型，比如byte、short、char（ASCII码是整型）及int。而其他类型都是通过转换成整型来支持的，比如String需要通过其hashCode来支持。
+
+枚举如何转成整型呢？
+
+我们介绍枚举的实现方式时，提到Enum类中有一个整型的ordinal变量。
+
+其实，switch对枚举的支持就是通过这个字段实现的，我们反编译一段switch操作枚举的代码，大致内容如下：
+```java
+switch(operation.ordinal()) {
+    case BasicOperation.PLUS.ordinal():
+}
+```
+
+所以，switch对enum的支持，实质上还是将枚举转换成int类型来提供的，感兴趣的读者可以自己写一段使用枚举的switch代码，然后通过javap -v查看字节码就明白了。
+
+#### 13.5 如何实现枚举的序列化
+在之前的章节中我们介绍了Java的序列化机制，本节介绍枚举的序列化机制。
+
+之所以单独介绍枚举的序列化机制，是因为Java在枚举的序列化上有一些特殊的规定：
+“Enum constants are serialized differently than ordinary serializable or externalizable objects. The serialized form of an enum constant consists solely of its name; field values of the constant are not present in the form. To serialize an enum constant, ObjectOutputStream writes the value returned by the enum constant's name method. To deserialize an enum constant, ObjectInputStream reads the constant name from the stream; the deserialized constant is then obtained by calling the java.lang.Enum.valueOf method, passing the constant's enum type along with the received constant name as arguments. Like other serializable or externalizable objects, enum constants can function as the targets of back references appearing subsequently in the serialization stream. The process by which enum constants are serialized cannot be customized: any class-specific writeObject, readObject, readObjectNoData, writeReplace, and readResolve methods defined by enum types are ignored during serialization and deserialization. Similarly, any serialPersistentFields or serialVersionUID field declarations are also ignored--all enum types have a fixed serialVersionUID of 0L. Documenting serializable fields and data for enum types is unnecessary, since there is no variation in the type of data sent.”
+
+大概意思就是说，在序列化时Java仅将枚举对象的name属性输出到结果中，反序列化时则是通过java.lang.Enum的valueOf方法来根据名字查找枚举对象。
+
+同时，编译器是不允许任何对这种序列化机制的定制的，因此禁用了writeObject、readObject、readObjectNoData和writeReplace和readResolve等方法。
+
+valueOf方法如下：
+```java
+public static <T extends Enum<T>> T valueOf(Class<T> enumType,String name) {
+    T result = enumType.enumConstantDirectory().get(name);
+    if (result != null)
+        return result;
+    if (name == null)
+        throw new NullPointerException("Name is null");
+    throw new IllegalArgumentException(
+        "No enum const " + enumType + "." + name);
+}
+```
+
+上述代码会尝试从调用enumType这个Class对象的enumConstantDirectory()方法返回的map中获取名字为name的枚举对象，如果不存在就抛出异常。
+
+再进一步跟踪到enumConstantDirectory()方法，就会发现到最后会以反射的方式调用enumType这个类型的values()静态方法，也就是上面我们看到的编译器创建的那个方法，然后用返回结果填充enumType这个Class对象中的enumConstantDirectory属性。
+
+为什么要针对枚举的序列化做出特殊的约定呢？
+
+这其实和枚举的特性有关，根据Java规范的规定，每一个枚举类型及其定义的枚举变量在JVM中都是唯一的。也就是说，每一个枚举项在JVM中都是单例的。
+
+但在12.5节提到过，序列化+反序列化是可以破坏单例模式的，所以Java就针对枚举的序列化做出如前面介绍的特殊规定。
+
+#### 13.6 为什么说枚举是实现单例最好的方式
+作为23种设计模式中最常用的设计模式，单例模式并没有想象的那么简单。因为在设计单例时要考虑很多问题，比如线程安全问题、序列化对单例模式的破坏等。
+
+1. **哪种写单例的方式最好**
+
+  
+
+  
+  
+  在StackOverflow中，有一个关于“What is an efficient way to implement a singleton pattern in Java?”的讨论，如图13 - 1所示。
+（此处文字描述图13 - 1内容：展示StackOverflow上关于Java实现单例模式方式讨论的截图，高赞回答是使用枚举，并引用Joshua Bloch在Effective Java中的观点  ）
+
+得票率最高的回答是：使用枚举。
+
+回答者引用了Joshua Bloch在Effective Java中明确表达过的观点：
+使用枚举实现单例的方法虽然还没有被广泛采用，但是单元素的枚举类型已经成为实现Singleton的最佳方法。
+
+如果深入理解了单例的用法及一些可能存在的“坑”，那么也许能得到相同的结论，那就是使用枚举实现单例是一种很好的方法。
+
+2. **枚举单例的写法简单**
+如果了解实现单例的所有方式的代码，那么就会发现，各种方式实现单例的代码都比较复杂，主要原因是考虑了线程安全问题。
+
+我们简单对比一下“双重校验锁”方式和枚举方式实现单例的代码。
+
+使用“双重校验锁”实现单例：
+```java
+public class Singleton {
+    private volatile static Singleton singleton;
+    private Singleton (){}
+    public static Singleton getSingleton() {
+        if (singleton == null) {
+            synchronized (Singleton.class) {
+            if (singleton == null) {
+                singleton = new Singleton();
+            }
+            }
+        }
+        return singleton;
+    }
+}
+```
+
+使用枚举实现单例：
+```java
+public enum Singleton {
+    INSTANCE;
+    public void whateverMethod() {
+    }
+}
+```
